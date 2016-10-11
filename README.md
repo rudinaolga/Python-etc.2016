@@ -1,2 +1,2 @@
 # Python-etc.2016
-try to write some sode.
+https://yadi.sk/d/gxcX_uW1wfXw8
