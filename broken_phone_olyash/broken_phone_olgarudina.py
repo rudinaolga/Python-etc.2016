@@ -4,7 +4,7 @@ import random
 import flask
 import telebot
 import conf
-
+# @broken_or_bot - логин бота в телеграме
 morph = MorphAnalyzer()
 
 
@@ -17,7 +17,7 @@ bot = telebot.TeleBot(conf.TOKEN, threaded=False)  # создаем экземп
 bot.remove_webhook()
 bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH)
 app = flask.Flask(__name__)
-def parsed_text(path):
+def parsed_text(path): #путь к файлу
     f = open(path, 'r', encoding = 'utf-8')
     words = f.read(100000)
     f.close()
@@ -28,18 +28,18 @@ def parsed_text(path):
 def parsed_words_dictionary(arr_words):
     dict_words = {}
     for i in arr_words:
-        ana = morph.parse(i)
-        first = ana[0]
+        ana = morph.parse(i) # морфологическая разметка каждого слова в словаре 
+        first = ana[0] # берем первый, самый частотный, разбор
         p = str(first.tag.POS)
         if p == 'NPRO':
-            g = str(first.tag.gender)
+            g = str(first.tag.gender) #чтобы вместо одного местоимения не выдавалось совсем другое (тк иные показатели)
             dict_words.setdefault(str(p + ',' + g), []).append(str(first.word))
         else:
             gram = str(first.tag)
             gram = gram.split(' ')
-            post = gram[0].split(',')
+            post = gram[0].split(',') # постоянные признаки разделены запятой, отделены от изменяемых пробелом
             post_set = (set(post))
-            dict_words.setdefault(str(post_set), []).append(str(first.word))
+            dict_words.setdefault(str(post_set), []).append(str(first.word)) #постоянные признаки становятся объединяющим ключом для словаря с массивом подходящих слов
     return dict_words
 
 @app.route('/', methods=['GET', 'HEAD'])
@@ -50,36 +50,36 @@ def index():
 
 
 file_name = '/home/wittmann/mysite/1grams-3.txt'
-all_words = parsed_text(file_name)
-morph_dict = parsed_words_dictionary(all_words)
+all_words = parsed_text(file_name) #массив слов из словаря НКРЯ
+morph_dict = parsed_words_dictionary(all_words) #словарь с морфологич разметкой слов НКРЯ
 
 @bot.message_handler(func=lambda m: True)
 def send_len(message):
     mes = message.text.split()
     total = []
     for word in mes:
-        mes_p = morph.parse(word)
+        mes_p = morph.parse(word) # разметка каждого слова пользователя
         first1 = mes_p[0]
         gram = str(first1.tag)
         gram = gram.split(' ')
-        post = gram[0].split(',')
+        post = gram[0].split(',') # также получаем изменяемые и неизм признаки
         post_set = (set(post))
         str_post_set = str(post_set)
         if str_post_set in morph_dict:
-            r = random.choice(morph_dict[str_post_set])
-            p_r = morph.parse(r)[0]
+            r = random.choice(morph_dict[str_post_set]) #рандомный выбор из массива слов, подходящих по признакам
+            p_r = morph.parse(r)[0] # разбираем это слово
             try:
                 changed = gram[1].split(',')
                 changed_set = (set(changed))
-                p_r = p_r.inflect(changed_set)
-                total.append(p_r.word)
+                p_r = p_r.inflect(changed_set) #ставим в неизменяемую форму соотв слова пользователя
+                total.append(p_r.word) 
             except:
-                total.append(r)
+                total.append(r) # если слово изменить нельзя
         else:
-            total.append(word)
-    myString = ' '.join(total)
+            total.append(word) #если для слова аналогии не удалось найти
+    myString = ' '.join(total) #объединяем наш ответ в строку
     total = []
-    reply_string = myString.capitalize()
+    reply_string = myString.capitalize() #делаем обращение с большой буквы
     bot.send_message(message.chat.id, reply_string)
 
 
